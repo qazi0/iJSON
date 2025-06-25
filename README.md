@@ -2,6 +2,8 @@
 
 iJSON is a lightweight and powerful macOS application designed to simplify the process of viewing, prettifying, and inspecting JSON data. It provides a clean, three-pane interface that allows users to paste raw JSON, visualize it as an interactive tree, and inspect individual nodes with detailed information.
 
+![iJSON Screenshot](resources/screen.png)
+
 ## Features
 
 iJSON offers a comprehensive set of features to enhance your JSON workflow:
@@ -77,9 +79,9 @@ Once the project is open in Xcode:
 *   `Notifications.swift`: Contains extensions for `Notification.Name` to facilitate communication between `iJSONApp` (menu bar) and `ContentView`.
 *   `RULES.md`: A document outlining software engineering best practices and common pitfalls encountered during the development of iJSON, serving as a guide for future contributions.
 
-## Creator
+## Author
 
-*   **Siraj**
+*   **Siraj Qazi**
 
 ## Versioning
 
@@ -87,4 +89,4 @@ Once the project is open in Xcode:
 
 ## License
 
-[Consider adding a license here, e.g., MIT, Apache 2.0, if not already present in the repository.]
+MIT License
