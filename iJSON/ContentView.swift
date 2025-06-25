@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var fontSize: CGFloat = 14.0 // Default font size
     @State private var rootNode: JSONNode? = nil // Initialize as nil
     @State private var selectedNode: JSONNode?
+    @State private var showCopySuccessToast: Bool = false // State for toast notification
 
     var body: some View {
         HSplitView {
@@ -123,6 +124,22 @@ struct ContentView: View {
                 }
             }
         }
+        .overlay(
+            Group {
+                if showCopySuccessToast {
+                    Text("Copied successfully!")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.green.opacity(0.8))
+                        .cornerRadius(8)
+                        .transition(.opacity) // Smooth fade in/out
+                }
+            }
+            .animation(.easeOut(duration: 0.3), value: showCopySuccessToast)
+            , alignment: .bottom // Position at the bottom
+        )
     }
 
     private func prettifyJSON(_ input: String) {
@@ -187,25 +204,13 @@ struct ContentView: View {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         
-        if let node = selectedNode {
-            // Use rawValue for copying
-            let valueToCopy = node.rawValue
-            
-            if JSONSerialization.isValidJSONObject(valueToCopy) {
-                // If the value itself is a valid JSON object/array, pretty print it
-                if let data = try? JSONSerialization.data(withJSONObject: valueToCopy, options: [.prettyPrinted, .sortedKeys]),
-                   let str = String(data: data, encoding: .utf8) {
-                    pasteboard.setString(str, forType: .string)
-                } else {
-                    pasteboard.setString("\(valueToCopy)", forType: .string) // Fallback for complex types
-                }
-            } else {
-                // For primitive types, just convert to string
-                pasteboard.setString("\(valueToCopy)", forType: .string)
-            }
-        } else {
-            // If no node is selected, copy the entire prettified output
-            pasteboard.setString(jsonOutput, forType: .string)
+        // Always copy the prettified and formatted JSON output string
+        pasteboard.setString(jsonOutput, forType: .string)
+        
+        // Show toast notification
+        showCopySuccessToast = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { // Hide after 2 seconds
+            showCopySuccessToast = false
         }
         #endif
     }
