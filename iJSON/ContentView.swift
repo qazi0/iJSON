@@ -188,13 +188,12 @@ struct ContentView: View {
                 
                 // Populate jsonOutput using the order-preserving toPrettifiedString method
                 if let node = rootNode {
+                    // Expand all nodes initially when JSON is first entered
+                    node.expandAllInitially()
                     jsonOutput = node.toPrettifiedString()
                 } else {
                     jsonOutput = "Error: Could not create JSON tree from input."
                 }
-                
-                // Automatically expand all nodes when JSON is first entered
-                expandAll()
 
             } catch {
                 jsonOutput = "Invalid JSON: \(error.localizedDescription)"
