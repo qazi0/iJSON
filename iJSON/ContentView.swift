@@ -251,7 +251,7 @@ struct ContentView: View {
     
     private func openJSONFile() {
         let panel = NSOpenPanel()
-        panel.allowedFileTypes = ["json"]
+        panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
@@ -272,7 +272,7 @@ struct ContentView: View {
     
     private func saveJSONFile() {
         let panel = NSSavePanel()
-        panel.allowedFileTypes = ["json"]
+        panel.allowedContentTypes = [.json]
         panel.nameFieldStringValue = "output.json"
         
         if panel.runModal() == .OK {
