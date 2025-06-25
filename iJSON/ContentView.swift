@@ -52,6 +52,10 @@ struct ContentView: View {
                 }
             }
             .frame(minWidth: 300)
+            .background(Color.white.opacity(0.08)) // Subtle background for the pane
+            .cornerRadius(12)
+            .shadow(radius: 5)
+            .padding(10) // Outer padding for the entire middle pane
 
             // Right Pane: Node Inspector
             InspectionView(selectedNode: $selectedNode, fontSize: fontSize)
@@ -105,6 +109,9 @@ struct ContentView: View {
                 // Convert to JSONNode tree, passing the original string segment for ordered parsing
                 rootNode = JSONNode.from(json: jsonObject, jsonStringSegment: input)
                 selectedNode = nil // Clear selection on new input
+                
+                // Automatically expand all nodes when JSON is first entered
+                expandAll()
 
             } catch {
                 jsonOutput = "Invalid JSON: \(error.localizedDescription)"
