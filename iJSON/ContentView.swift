@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit // Import AppKit for NSOpenPanel and NSSavePanel
 
 struct ContentView: View {
     @State private var jsonInput: String = ""
@@ -14,132 +15,158 @@ struct ContentView: View {
     @State private var rootNode: JSONNode? = nil // Initialize as nil
     @State private var selectedNode: JSONNode?
     @State private var showCopySuccessToast: Bool = false // State for toast notification
+    @State private var showAboutSheet: Bool = false // State for showing About sheet
 
     var body: some View {
-        HSplitView {
-            // Left Pane: JSON Input
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center) { // Use HStack for title and button, align center
-                    Text("JSON Input")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    Spacer()
-                    Button(action: clearInput) { // Clear button
-                        Label("Clear", systemImage: "xmark.circle.fill")
-                            .font(.body) // Make button text slightly larger
-                    }
-                    .buttonStyle(.borderedProminent)
-                    // Removed .controlSize(.small) to make it larger
-                }
-                .padding([.horizontal, .top])
-                .padding(.bottom, 5)
-                .frame(height: 40) // Fixed height for the title/button row
-
-                Divider()
-                    .padding(.horizontal)
-
-                ZStack(alignment: .topLeading) { // ZStack for placeholder
-                    TextEditor(text: $jsonInput)
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .lineSpacing(5)
-                        .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
-                        .onChange(of: jsonInput) {
-                            prettifyJSON(jsonInput)
-                        }
-                        .background(jsonInput.isEmpty ? Color.clear : Color.white.opacity(0.01)) // Make background clear when empty
-                    
-                    if jsonInput.isEmpty {
-                        Text("Paste JSON here...")
-                            .font(.system(size: fontSize, design: .monospaced))
-                            .foregroundColor(.gray)
-                            .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
-                    }
-                }
-                .frame(minWidth: 300) // Apply frame to ZStack
+        VStack(spacing: 0) { // Use VStack for overall layout: App Name, Nav Bar, HSplitView
+            // App Name (Thicker Nav Bar)
+            HStack {
+                Text("iJSON")
+                    .font(.system(size: 36, weight: .heavy, design: .rounded)) // Larger, heavier font
+                    .foregroundColor(.accentColor)
+                    .padding(.leading, 20) // Padding from left edge
+                Spacer()
             }
-            .frame(minWidth: 300)
-            .background(Color.white.opacity(0.08)) // Consistent background
-            .cornerRadius(12)
-            .shadow(radius: 5)
-            .padding(10) // Consistent outer padding
+            .frame(height: 60) // Thicker bar
+            .background(Color.white.opacity(0.05)) // Subtle background
+            .shadow(radius: 2) // Slight shadow for separation
 
-            // Middle Pane: Prettified JSON Output (Tree View or Raw Text)
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Pretty JSON Output") // Title for middle pane
-                    .font(.title2)
-                    .fontWeight(.bold)
+            HSplitView {
+                // Left Pane: JSON Input
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .center) { // Use HStack for title and button, align center
+                        Text("JSON Input")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Button(action: clearInput) { // Clear button
+                            Label("Clear", systemImage: "xmark.circle.fill")
+                                .font(.body) // Make button text slightly larger
+                        }
+                        .buttonStyle(.borderedProminent)
+                        // Removed .controlSize(.small) to make it larger
+                    }
                     .padding([.horizontal, .top])
                     .padding(.bottom, 5)
-                    .foregroundColor(.primary)
+                    .frame(height: 40) // Fixed height for the title/button row
 
-                Divider()
-                    .padding(.horizontal)
+                    Divider()
+                        .padding(.horizontal)
 
-                ScrollView {
-                    if let node = rootNode { // Directly use the Optional JSONNode
-                        JSONTreeView(node: node, fontSize: fontSize, selectedNode: $selectedNode)
-                            .padding()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    } else {
-                        Text(jsonOutput) // Fallback for invalid JSON or initial state
+                    ZStack(alignment: .topLeading) { // ZStack for placeholder
+                        TextEditor(text: $jsonInput)
                             .font(.system(size: fontSize, design: .monospaced))
                             .lineSpacing(5)
-                            .padding()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                            .textSelection(.enabled)
+                            .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
+                            .onChange(of: jsonInput) {
+                                prettifyJSON(jsonInput)
+                            }
+                            .background(jsonInput.isEmpty ? Color.clear : Color.white.opacity(0.01)) // Make background clear when empty
+                        
+                        if jsonInput.isEmpty {
+                            Text("Paste JSON here...")
+                                .font(.system(size: fontSize, design: .monospaced))
+                                .foregroundColor(.gray)
+                                .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
+                        }
+                    }
+                    .frame(minWidth: 300) // Apply frame to ZStack
+                }
+                .frame(minWidth: 300)
+                .background(Color.white.opacity(0.08)) // Consistent background
+                .cornerRadius(12)
+                .shadow(radius: 5)
+                .padding(10) // Consistent outer padding
+
+                // Middle Pane: Prettified JSON Output (Tree View or Raw Text)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack { // HStack for title and copy button
+                        Text("Pretty JSON Output") // Title for middle pane
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        Spacer() // Pushes copy button to the right
+                        Button(action: copyOutput) {
+                            Label("Copy Output", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.borderedProminent) // Make it look like a button
+                    }
+                    .padding([.horizontal, .top])
+                    .padding(.bottom, 5)
+
+                    Divider()
+                        .padding(.horizontal)
+
+                    ScrollView {
+                        if let node = rootNode { // Directly use the Optional JSONNode
+                            JSONTreeView(node: node, fontSize: fontSize, selectedNode: $selectedNode)
+                                .padding()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        } else {
+                            Text(jsonOutput) // Fallback for invalid JSON or initial state
+                                .font(.system(size: fontSize, design: .monospaced))
+                                .lineSpacing(5)
+                                .padding()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                                .textSelection(.enabled)
+                        }
                     }
                 }
-            }
-            .frame(minWidth: 300)
-            .background(Color.white.opacity(0.08)) // Subtle background for the pane
-            .cornerRadius(12)
-            .shadow(radius: 5)
-            .padding(10) // Outer padding for the entire middle pane
+                .frame(minWidth: 300)
+                .background(Color.white.opacity(0.08)) // Subtle background for the pane
+                .cornerRadius(12)
+                .shadow(radius: 5)
+                .padding(10) // Outer padding for the entire middle pane
 
-            // Right Pane: Node Inspector
-            InspectionView(selectedNode: $selectedNode, fontSize: fontSize)
-                .frame(minWidth: 250, idealWidth: 300, maxWidth: 400)
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .automatic) {
-                Button(action: zoomIn) {
-                    Label("Zoom In", systemImage: "plus.magnifyingglass")
+                // Right Pane: Node Inspector
+                InspectionView(selectedNode: $selectedNode, fontSize: fontSize)
+                    .frame(minWidth: 250, idealWidth: 300, maxWidth: 400)
+            }
+            .sheet(isPresented: $showAboutSheet) {
+                AboutView()
+            }
+            .overlay(
+                Group {
+                    if showCopySuccessToast {
+                        Text("Copied successfully!")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.green.opacity(0.8))
+                            .cornerRadius(8)
+                            .transition(.opacity) // Smooth fade in/out
+                    }
                 }
-                .keyboardShortcut("+", modifiers: .command)
-                
-                Button(action: zoomOut) {
-                    Label("Zoom Out", systemImage: "minus.magnifyingglass")
-                }
-                .keyboardShortcut("-", modifiers: .command)
-                
-                Button(action: expandAll) {
-                    Label("Expand All", systemImage: "arrow.down.right.and.arrow.up.left")
-                }
-                Button(action: collapseAll) {
-                    Label("Collapse All", systemImage: "arrow.up.left.and.arrow.down.right")
-                }
-                Button(action: copyOutput) {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
+                .animation(.easeOut(duration: 0.3), value: showCopySuccessToast)
+                , alignment: .bottom // Position at the bottom
+            )
+            .onReceive(NotificationCenter.default.publisher(for: .openJSONFile)) { _ in
+                openJSONFile()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .saveJSONFile)) { _ in
+                saveJSONFile()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
+                zoomIn()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
+                zoomOut()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .expandAll)) { _ in
+                expandAll()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .collapseAll)) { _ in
+                collapseAll()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showAboutSheet)) { _ in
+                showAboutSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .copyOutput)) { _ in
+                copyOutput()
             }
         }
-        .overlay(
-            Group {
-                if showCopySuccessToast {
-                    Text("Copied successfully!")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color.green.opacity(0.8))
-                        .cornerRadius(8)
-                        .transition(.opacity) // Smooth fade in/out
-                }
-            }
-            .animation(.easeOut(duration: 0.3), value: showCopySuccessToast)
-            , alignment: .bottom // Position at the bottom
-        )
     }
 
     private func prettifyJSON(_ input: String) {
@@ -220,6 +247,91 @@ struct ContentView: View {
         jsonOutput = "Pretty JSON" // Reset to default placeholder
         rootNode = nil
         selectedNode = nil
+    }
+    
+    private func openJSONFile() {
+        let panel = NSOpenPanel()
+        panel.allowedFileTypes = ["json"]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        
+        if panel.runModal() == .OK {
+            if let url = panel.url {
+                do {
+                    let data = try Data(contentsOf: url)
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        jsonInput = jsonString
+                    }
+                } catch {
+                    jsonOutput = "Error reading file: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+    
+    private func saveJSONFile() {
+        let panel = NSSavePanel()
+        panel.allowedFileTypes = ["json"]
+        panel.nameFieldStringValue = "output.json"
+        
+        if panel.runModal() == .OK {
+            if let url = panel.url {
+                do {
+                    try jsonOutput.write(to: url, atomically: true, encoding: .utf8)
+                } catch {
+                    jsonOutput = "Error saving file: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+}
+
+struct AboutView: View {
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "doc.text.fill")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+                .foregroundColor(.accentColor)
+
+            Text("About iJSON")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+
+            Text("Version: 1.0.0")
+                .font(.headline)
+                .foregroundColor(.secondary)
+
+            Text("iJSON is a macOS application designed to prettify, inspect, and manipulate JSON data with ease. It provides a clear tree view, a powerful inspector, and robust parsing capabilities.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Creator: Siraj")
+                    .font(.subheadline)
+                
+                HStack {
+                    Text("GitHub Repository:")
+                        .font(.subheadline)
+                    Link("blakberrisigma/iJSON", destination: URL(string: "https://github.com/blakberrisigma/iJSON")!)
+                        .font(.subheadline)
+                }
+            }
+            .padding(.horizontal)
+
+            Button("Dismiss") {
+                dismiss()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .padding(30)
+        .frame(width: 400, height: 500)
     }
 }
 
