@@ -32,6 +32,13 @@ struct iJSONApp: App {
                 .keyboardShortcut("s", modifiers: .command)
             }
             
+            CommandGroup(after: .pasteboard) { // Add to Edit menu
+                Button("Copy JSON Output") {
+                    NotificationCenter.default.post(name: .copyOutput, object: nil)
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+            }
+            
             CommandGroup(after: .windowArrangement) { // Add View menu after Window Arrangement (standard placement)
                 Button("Zoom In") {
                     NotificationCenter.default.post(name: .zoomIn, object: nil)
@@ -51,6 +58,18 @@ struct iJSONApp: App {
                 Button("Collapse All") {
                     NotificationCenter.default.post(name: .collapseAll, object: nil)
                 }
+                
+                Divider()
+                
+                Button("Toggle Input Pane") {
+                    NotificationCenter.default.post(name: .toggleLeftSidebar, object: nil)
+                }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+                
+                Button("Toggle Inspector Pane") {
+                    NotificationCenter.default.post(name: .toggleRightSidebar, object: nil)
+                }
+                .keyboardShortcut("2", modifiers: [.command, .option])
             }
         }
     }
