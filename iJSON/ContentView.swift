@@ -18,35 +18,44 @@ struct ContentView: View {
         HSplitView {
             // Left Pane: JSON Input
             VStack(alignment: .leading, spacing: 0) {
-                Text("JSON Input")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .padding([.horizontal, .top])
-                    .padding(.bottom, 5)
-                    .foregroundColor(.primary)
+                HStack { // Use HStack for title and button
+                    Text("JSON Input")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Button(action: clearInput) { // Clear button
+                        Label("Clear", systemImage: "xmark.circle.fill")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+                .padding([.horizontal, .top])
+                .padding(.bottom, 5)
+                .frame(height: 40) // Fixed height for the title/button row
 
                 Divider()
                     .padding(.horizontal)
 
-                TextEditor(text: $jsonInput)
-                    .font(.system(size: fontSize, design: .monospaced))
-                    .lineSpacing(5)
-                    .padding()
-                    .frame(minWidth: 300)
-                    .onChange(of: jsonInput) {
-                        prettifyJSON(jsonInput)
+                ZStack(alignment: .topLeading) { // ZStack for placeholder
+                    TextEditor(text: $jsonInput)
+                        .font(.system(size: fontSize, design: .monospaced))
+                        .lineSpacing(5)
+                        .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)) // Default TextEditor internal padding
+                        .onChange(of: jsonInput) {
+                            prettifyJSON(jsonInput)
+                        }
+                        .background(jsonInput.isEmpty ? Color.clear : Color.white.opacity(0.01)) // Make background clear when empty
+                    
+                    if jsonInput.isEmpty {
+                        Text("Paste JSON here...")
+                            .font(.system(size: fontSize, design: .monospaced))
+                            .foregroundColor(.gray)
+                            .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)) // Match TextEditor's internal padding
                     }
-                    .overlay(
-                        Group {
-                            if jsonInput.isEmpty {
-                                Text("Paste JSON here...")
-                                    .font(.system(size: fontSize)) // Apply font size
-                                    .foregroundColor(.gray)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 12)
-                            }
-                        }, alignment: .topLeading
-                    )
+                }
+                .frame(minWidth: 300) // Apply frame to ZStack
             }
             .frame(minWidth: 300)
             .background(Color.white.opacity(0.08)) // Consistent background
@@ -199,6 +208,13 @@ struct ContentView: View {
             pasteboard.setString(jsonOutput, forType: .string)
         }
         #endif
+    }
+    
+    private func clearInput() {
+        jsonInput = ""
+        jsonOutput = "Pretty JSON" // Reset to default placeholder
+        rootNode = nil
+        selectedNode = nil
     }
 }
 
