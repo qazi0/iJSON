@@ -155,16 +155,16 @@ struct ContentView: View {
                 let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                 
                 // Prettify for raw text display (if tree view fails or for copy)
-                let prettyPrintedData = try JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted, .sortedKeys])
-                if let prettyPrintedString = String(data: prettyPrintedData, encoding: .utf8) {
-                    jsonOutput = prettyPrintedString
-                } else {
-                    jsonOutput = "Error: Could not convert prettified data to string."
-                }
-
                 // Convert to JSONNode tree, passing the original string segment for ordered parsing
                 rootNode = JSONNode.from(json: jsonObject, jsonStringSegment: input)
                 selectedNode = nil // Clear selection on new input
+                
+                // Populate jsonOutput using the order-preserving toPrettifiedString method
+                if let node = rootNode {
+                    jsonOutput = node.toPrettifiedString()
+                } else {
+                    jsonOutput = "Error: Could not create JSON tree from input."
+                }
                 
                 // Automatically expand all nodes when JSON is first entered
                 expandAll()
