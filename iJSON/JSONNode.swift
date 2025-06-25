@@ -42,16 +42,20 @@ class JSONNode: ObservableObject, Identifiable {
     // Helper to convert Any to JSONNode
     // Now takes jsonStringSegment for ordered parsing
     static func from(json: Any, key: String? = nil, jsonStringSegment: String? = nil) -> JSONNode {
-        if let dict = json as? [String: Any] {
+        if let bool = json as? Bool { // Direct Bool check
+            return JSONNode(key: key, type: "Boolean", rawValue: bool)
+        } else if let num = json as? NSNumber { // Check NSNumber, then if it's a boolean
+            if CFBooleanGetTypeID() == CFGetTypeID(num) { // Check if it's actually a CFBoolean (true/false)
+                return JSONNode(key: key, type: "Boolean", rawValue: num.boolValue)
+            } else {
+                return JSONNode(key: key, type: "Number", rawValue: num)
+            }
+        } else if let dict = json as? [String: Any] {
             return JSONNode(key: key, type: "Object", rawValue: dict, originalJsonStringSegment: jsonStringSegment, isExpanded: false)
         } else if let arr = json as? [Any] {
             return JSONNode(key: key, type: "Array", rawValue: arr, originalJsonStringSegment: jsonStringSegment, isExpanded: false)
         } else if let str = json as? String {
             return JSONNode(key: key, type: "String", rawValue: str)
-        } else if let num = json as? NSNumber {
-            return JSONNode(key: key, type: "Number", rawValue: num)
-        } else if let bool = json as? Bool {
-            return JSONNode(key: key, type: "Boolean", rawValue: bool)
         } else {
             return JSONNode(key: key, type: "Null", rawValue: NSNull())
         }
@@ -62,6 +66,81 @@ class JSONNode: ObservableObject, Identifiable {
         self.isExpanded = expanded
         for child in children {
             child.setExpansion(to: expanded)
+        }
+    }
+
+    // MARK: - String Conversion for Prettified Output (Order Preserving)
+    func toPrettifiedString(indentationLevel: Int = 0) -> String {
+        let indent = String(repeating: "    ", count: indentationLevel)
+        let nextIndent = String(repeating: "    ", count: indentationLevel + 1)
+
+        switch type {
+        case "Object":
+            // Use children for ordered keys
+            if children.isEmpty { return "{}" }
+
+            var objectString = "{\n"
+            for (index, child) in children.enumerated() {
+                objectString += "\(nextIndent)\"\(child.key ?? "null")\": \(child.toPrettifiedString(indentationLevel: indentationLevel + 1))"
+                if index < children.count - 1 {
+                    objectString += ","
+                }
+                objectString += "\n"
+            }
+            objectString += "\(indent)}"
+            return objectString
+
+        case "Array":
+            if children.isEmpty { return "[]" }
+
+            var arrayString = "[\n"
+            for (index, child) in children.enumerated() {
+                arrayString += "\(nextIndent)\(child.toPrettifiedString(indentationLevel: indentationLevel + 1))"
+                if index < children.count - 1 {
+                    arrayString += ","
+                }
+                arrayString += "\n"
+            }
+            arrayString += "\(indent)]"
+            return arrayString
+
+        case "String":
+            let stringValue = rawValue as? String ?? ""
+            var escapedString = ""
+            for scalar in stringValue.unicodeScalars {
+                switch scalar.value {
+                case 0x08: escapedString += "\\b" // Backspace
+                case 0x0C: escapedString += "\\f" // Form feed
+                case 0x0A: escapedString += "\\n" // Newline
+                case 0x0D: escapedString += "\\r" // Carriage return
+                case 0x09: escapedString += "\\t" // Tab
+                case 0x22: escapedString += "\\\"" // Double quote (")
+                case 0x5C: escapedString += "\\\\" // Backslash (\)
+                case 0x2F: escapedString += "\\/" // Solidus (/) - optional, but common
+                case 0x00..<0x20, 0x7F: // Other control characters and DEL
+                    escapedString += String(format: "\\u%04x", scalar.value)
+                default:
+                    if scalar.isASCII {
+                        escapedString.append(Character(scalar))
+                    } else {
+                        escapedString += String(format: "\\u%04x", scalar.value)
+                    }
+                }
+            }
+            return "\"\(escapedString)\""
+
+        case "Number":
+            return "\(rawValue as? NSNumber ?? 0)"
+
+        case "Boolean":
+            // Ensure boolean values are represented as "true" or "false" strings
+            return "\(rawValue as? Bool ?? false)"
+
+        case "Null":
+            return "null"
+
+        default:
+            return "\(rawValue)"
         }
     }
 
