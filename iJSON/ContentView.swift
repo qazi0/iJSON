@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var jsonInput: String = ""
-    @State private var jsonOutput: String = "Paste your JSON here to prettify it."
+    @State private var jsonOutput: String = "Pretty JSON" // Changed default placeholder
     @State private var fontSize: CGFloat = 14.0 // Default font size
     @State private var rootNode: JSONNode? = nil // Initialize as nil
     @State private var selectedNode: JSONNode?
@@ -17,38 +17,68 @@ struct ContentView: View {
     var body: some View {
         HSplitView {
             // Left Pane: JSON Input
-            TextEditor(text: $jsonInput)
-                .font(.system(size: fontSize, design: .monospaced))
-                .lineSpacing(5)
-                .padding()
-                .frame(minWidth: 300)
-                .onChange(of: jsonInput) {
-                    prettifyJSON(jsonInput)
-                }
-                .overlay(
-                    Group {
-                        if jsonInput.isEmpty {
-                            Text("Paste JSON here...")
-                                .foregroundColor(.gray)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 12)
-                        }
-                    }, alignment: .topLeading
-                )
+            VStack(alignment: .leading, spacing: 0) {
+                Text("JSON Input")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .padding([.horizontal, .top])
+                    .padding(.bottom, 5)
+                    .foregroundColor(.primary)
+
+                Divider()
+                    .padding(.horizontal)
+
+                TextEditor(text: $jsonInput)
+                    .font(.system(size: fontSize, design: .monospaced))
+                    .lineSpacing(5)
+                    .padding()
+                    .frame(minWidth: 300)
+                    .onChange(of: jsonInput) {
+                        prettifyJSON(jsonInput)
+                    }
+                    .overlay(
+                        Group {
+                            if jsonInput.isEmpty {
+                                Text("Paste JSON here...")
+                                    .font(.system(size: fontSize)) // Apply font size
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 12)
+                            }
+                        }, alignment: .topLeading
+                    )
+            }
+            .frame(minWidth: 300)
+            .background(Color.white.opacity(0.08)) // Consistent background
+            .cornerRadius(12)
+            .shadow(radius: 5)
+            .padding(10) // Consistent outer padding
 
             // Middle Pane: Prettified JSON Output (Tree View or Raw Text)
-            ScrollView {
-                if let node = rootNode { // Directly use the Optional JSONNode
-                    JSONTreeView(node: node, fontSize: fontSize, selectedNode: $selectedNode)
-                        .padding()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                } else {
-                    Text(jsonOutput) // Fallback for invalid JSON or initial state
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .lineSpacing(5)
-                        .padding()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .textSelection(.enabled)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Pretty JSON Output") // Title for middle pane
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .padding([.horizontal, .top])
+                    .padding(.bottom, 5)
+                    .foregroundColor(.primary)
+
+                Divider()
+                    .padding(.horizontal)
+
+                ScrollView {
+                    if let node = rootNode { // Directly use the Optional JSONNode
+                        JSONTreeView(node: node, fontSize: fontSize, selectedNode: $selectedNode)
+                            .padding()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    } else {
+                        Text(jsonOutput) // Fallback for invalid JSON or initial state
+                            .font(.system(size: fontSize, design: .monospaced))
+                            .lineSpacing(5)
+                            .padding()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .textSelection(.enabled)
+                    }
                 }
             }
             .frame(minWidth: 300)
@@ -88,7 +118,7 @@ struct ContentView: View {
 
     private func prettifyJSON(_ input: String) {
         guard !input.isEmpty else {
-            jsonOutput = "Paste your JSON here to prettify it."
+            jsonOutput = "Pretty JSON" // Changed placeholder for empty input
             rootNode = nil
             selectedNode = nil
             return
