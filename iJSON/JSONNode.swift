@@ -15,16 +15,28 @@ class JSONNode: ObservableObject, Identifiable {
     let rawValue: Any // Stores the actual value (String, NSNumber, Bool, [String: Any], [Any], NSNull)
     let originalJsonStringSegment: String? // Stores the original string for ordered parsing
     @Published var isExpanded: Bool = false
-
+    
+    // Make children a stored property instead of computed to maintain state
+    private var _children: [JSONNode]?
+    
     var children: [JSONNode] {
+        if let cachedChildren = _children {
+            return cachedChildren
+        }
+        
+        let computedChildren: [JSONNode]
         if type == "Object", let jsonString = originalJsonStringSegment,
            let dict = rawValue as? [String: Any] {
-            return JSONNode.parseOrderedObjectChildren(from: jsonString, parentRawValue: dict)
+            computedChildren = JSONNode.parseOrderedObjectChildren(from: jsonString, parentRawValue: dict)
         } else if type == "Array", let jsonString = originalJsonStringSegment,
                   let array = rawValue as? [Any] {
-            return JSONNode.parseOrderedArrayChildren(from: jsonString, parentRawValue: array)
+            computedChildren = JSONNode.parseOrderedArrayChildren(from: jsonString, parentRawValue: array)
+        } else {
+            computedChildren = []
         }
-        return []
+        
+        _children = computedChildren
+        return computedChildren
     }
 
     var isExpandable: Bool {
@@ -37,6 +49,7 @@ class JSONNode: ObservableObject, Identifiable {
         self.rawValue = rawValue
         self.originalJsonStringSegment = originalJsonStringSegment
         self.isExpanded = isExpanded
+        self._children = nil // Will be lazily computed
     }
 
     // Helper to convert Any to JSONNode
@@ -66,6 +79,16 @@ class JSONNode: ObservableObject, Identifiable {
         self.isExpanded = expanded
         for child in children {
             child.setExpansion(to: expanded)
+        }
+    }
+    
+    // Function to expand all initially (called once after creation)
+    func expandAllInitially() {
+        if isExpandable {
+            self.isExpanded = true
+            for child in children {
+                child.expandAllInitially()
+            }
         }
     }
 
