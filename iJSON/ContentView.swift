@@ -102,8 +102,8 @@ struct ContentView: View {
                     jsonOutput = "Error: Could not convert prettified data to string."
                 }
 
-                // Convert to JSONNode tree
-                rootNode = JSONNode.from(json: jsonObject)
+                // Convert to JSONNode tree, passing the original string segment for ordered parsing
+                rootNode = JSONNode.from(json: jsonObject, jsonStringSegment: input)
                 selectedNode = nil // Clear selection on new input
 
             } catch {
