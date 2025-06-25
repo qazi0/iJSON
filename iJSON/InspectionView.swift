@@ -97,7 +97,6 @@ struct RawValueSection: View {
                             .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
                     )
             }
-            .frame(maxHeight: 300) // Increased height limit for value display
         }
         .padding()
         .background(Color.gray.opacity(0.1))
