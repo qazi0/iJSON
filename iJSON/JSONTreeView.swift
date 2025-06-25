@@ -11,7 +11,6 @@ struct JSONTreeView: View {
     @ObservedObject var node: JSONNode
     let fontSize: CGFloat
     @Binding var selectedNode: JSONNode?
-    @State private var isHovering = false // For hover effect
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -19,8 +18,8 @@ struct JSONTreeView: View {
                 DisclosureGroup(isExpanded: $node.isExpanded) {
                     // Content when expanded
                     if node.isExpanded {
-                        Group {
-                            ForEach(node.children) { childNode in
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(node.children, id: \.id) { childNode in
                                 JSONTreeView(node: childNode, fontSize: fontSize, selectedNode: $selectedNode)
                             }
                         }
@@ -31,26 +30,42 @@ struct JSONTreeView: View {
                         .contentShape(Rectangle()) // Make the whole row tappable
                         .onTapGesture {
                             selectedNode = node
-                            // Toggle expansion only if it's an object or array
-                            if node.isExpandable {
-                                node.isExpanded.toggle()
-                            }
-                        }
-                        .background(isHovering ? Color.gray.opacity(0.1) : Color.clear) // Hover effect
-                        .onHover { hover in
-                            isHovering = hover
                         }
                 }
+                .disclosureGroupStyle(PlainDisclosureGroupStyle())
             } else {
                 NodeLabel(node: node, fontSize: fontSize, isSelected: selectedNode?.id == node.id)
                     .contentShape(Rectangle()) // Make the whole row tappable
                     .onTapGesture {
                         selectedNode = node
                     }
-                    .background(isHovering ? Color.gray.opacity(0.1) : Color.clear) // Hover effect
-                    .onHover { hover in
-                        isHovering = hover
+            }
+        }
+    }
+}
+
+struct PlainDisclosureGroupStyle: DisclosureGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        configuration.isExpanded.toggle()
                     }
+                }) {
+                    Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .rotationEffect(.degrees(configuration.isExpanded ? 0 : 0))
+                        .animation(.easeInOut(duration: 0.2), value: configuration.isExpanded)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                configuration.label
+            }
+            
+            if configuration.isExpanded {
+                configuration.content
             }
         }
     }
@@ -60,6 +75,7 @@ struct NodeLabel: View {
     @ObservedObject var node: JSONNode
     let fontSize: CGFloat
     let isSelected: Bool
+    @State private var isHovering = false // For hover effect
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) { // Align text baselines
@@ -120,7 +136,10 @@ struct NodeLabel: View {
             Spacer()
         }
         .padding(.vertical, 3) // Slightly more vertical padding
-        .background(isSelected ? Color.accentColor.opacity(0.3) : Color.clear) // Stronger selection highlight
+        .background(isSelected ? Color.accentColor.opacity(0.3) : (isHovering ? Color.gray.opacity(0.1) : Color.clear)) // Stronger selection highlight
         .cornerRadius(4)
+        .onHover { hover in
+            isHovering = hover
+        }
     }
 }
