@@ -16,6 +16,10 @@ struct ContentView: View {
     @State private var selectedNode: JSONNode?
     @State private var showCopySuccessToast: Bool = false // State for toast notification
     @State private var showAboutSheet: Bool = false // State for showing About sheet
+    
+    // Collapsible sidebar states
+    @State private var isLeftPaneVisible: Bool = true
+    @State private var isRightPaneVisible: Bool = true
 
     var body: some View {
         VStack(spacing: 0) { // Use VStack for overall layout: App Name, Nav Bar, HSplitView
@@ -26,6 +30,50 @@ struct ContentView: View {
                     .foregroundColor(.accentColor)
                     .padding(.leading, 20) // Padding from left edge
                 Spacer()
+                
+                // Sidebar toggle buttons - Always visible
+                HStack(spacing: 16) {
+                    // Left pane toggle
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isLeftPaneVisible.toggle()
+                        }
+                    }) {
+                        Image(systemName: "sidebar.left")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.primary)
+                            .opacity(isLeftPaneVisible ? 1.0 : 0.5) // Dimmed when hidden, bright when visible
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.borderless)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.white.opacity(isLeftPaneVisible ? 0.15 : 0.08))
+                            .frame(width: 36, height: 36)
+                    )
+                    .help(isLeftPaneVisible ? "Hide Input Pane (⌘⌥1)" : "Show Input Pane (⌘⌥1)")
+                    
+                    // Right pane toggle
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isRightPaneVisible.toggle()
+                        }
+                    }) {
+                        Image(systemName: "sidebar.right")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.primary)
+                            .opacity(isRightPaneVisible ? 1.0 : 0.5) // Dimmed when hidden, bright when visible
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.borderless)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.white.opacity(isRightPaneVisible ? 0.15 : 0.08))
+                            .frame(width: 36, height: 36)
+                    )
+                    .help(isRightPaneVisible ? "Hide Inspector Pane (⌘⌥2)" : "Show Inspector Pane (⌘⌥2)")
+                }
+                .padding(.trailing, 20)
             }
             .frame(height: 60) // Thicker bar
             .background(Color.white.opacity(0.05)) // Subtle background
@@ -33,51 +81,54 @@ struct ContentView: View {
 
             HSplitView {
                 // Left Pane: JSON Input
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .center) { // Use HStack for title and button, align center
-                        Text("JSON Input")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Button(action: clearInput) { // Clear button
-                            Label("Clear", systemImage: "xmark.circle.fill")
-                                .font(.body) // Make button text slightly larger
-                        }
-                        .buttonStyle(.borderedProminent)
-                        // Removed .controlSize(.small) to make it larger
-                    }
-                    .padding([.horizontal, .top])
-                    .padding(.bottom, 5)
-                    .frame(height: 40) // Fixed height for the title/button row
-
-                    Divider()
-                        .padding(.horizontal)
-
-                    ZStack(alignment: .topLeading) { // ZStack for placeholder
-                        TextEditor(text: $jsonInput)
-                            .font(.system(size: fontSize, design: .monospaced))
-                            .lineSpacing(5)
-                            .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
-                            .onChange(of: jsonInput) {
-                                prettifyJSON(jsonInput)
+                if isLeftPaneVisible {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(alignment: .center) { // Use HStack for title and button, align center
+                            Text("JSON Input")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Button(action: clearInput) { // Clear button
+                                Label("Clear", systemImage: "xmark.circle.fill")
+                                    .font(.body) // Make button text slightly larger
                             }
-                            .background(jsonInput.isEmpty ? Color.clear : Color.white.opacity(0.01)) // Make background clear when empty
-                        
-                        if jsonInput.isEmpty {
-                            Text("Paste JSON here...")
-                                .font(.system(size: fontSize, design: .monospaced))
-                                .foregroundColor(.gray)
-                                .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
+                            .buttonStyle(.borderedProminent)
+                            // Removed .controlSize(.small) to make it larger
                         }
+                        .padding([.horizontal, .top])
+                        .padding(.bottom, 5)
+                        .frame(height: 40) // Fixed height for the title/button row
+
+                        Divider()
+                            .padding(.horizontal)
+
+                        ZStack(alignment: .topLeading) { // ZStack for placeholder
+                            TextEditor(text: $jsonInput)
+                                .font(.system(size: fontSize, design: .monospaced))
+                                .lineSpacing(5)
+                                .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
+                                .onChange(of: jsonInput) {
+                                    prettifyJSON(jsonInput)
+                                }
+                                .background(jsonInput.isEmpty ? Color.clear : Color.white.opacity(0.01)) // Make background clear when empty
+                            
+                            if jsonInput.isEmpty {
+                                Text("Paste JSON here...")
+                                    .font(.system(size: fontSize, design: .monospaced))
+                                    .foregroundColor(.gray)
+                                    .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
+                            }
+                        }
+                        .frame(minWidth: 300) // Apply frame to ZStack
                     }
-                    .frame(minWidth: 300) // Apply frame to ZStack
+                    .frame(minWidth: 300)
+                    .background(Color.white.opacity(0.08)) // Consistent background
+                    .cornerRadius(12)
+                    .shadow(radius: 5)
+                    .padding(10) // Consistent outer padding
+                    .transition(.move(edge: .leading).combined(with: .opacity))
                 }
-                .frame(minWidth: 300)
-                .background(Color.white.opacity(0.08)) // Consistent background
-                .cornerRadius(12)
-                .shadow(radius: 5)
-                .padding(10) // Consistent outer padding
 
                 // Middle Pane: Prettified JSON Output (Tree View or Raw Text)
                 VStack(alignment: .leading, spacing: 0) {
@@ -113,15 +164,18 @@ struct ContentView: View {
                         }
                     }
                 }
-                .frame(minWidth: 300)
+                .frame(minWidth: isLeftPaneVisible && isRightPaneVisible ? 300 : (isLeftPaneVisible || isRightPaneVisible ? 400 : 600))
                 .background(Color.white.opacity(0.08)) // Subtle background for the pane
                 .cornerRadius(12)
                 .shadow(radius: 5)
                 .padding(10) // Outer padding for the entire middle pane
 
                 // Right Pane: Node Inspector
-                InspectionView(selectedNode: $selectedNode, fontSize: fontSize)
-                    .frame(minWidth: 250, idealWidth: 300, maxWidth: 400)
+                if isRightPaneVisible {
+                    InspectionView(selectedNode: $selectedNode, fontSize: fontSize)
+                        .frame(minWidth: 250, idealWidth: 300, maxWidth: 400)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
             }
             .sheet(isPresented: $showAboutSheet) {
                 AboutView()
@@ -165,6 +219,16 @@ struct ContentView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .copyOutput)) { _ in
                 copyOutput()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .toggleLeftSidebar)) { _ in
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isLeftPaneVisible.toggle()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .toggleRightSidebar)) { _ in
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isRightPaneVisible.toggle()
+                }
             }
         }
     }
