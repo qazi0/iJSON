@@ -18,7 +18,7 @@ struct ContentView: View {
         HSplitView {
             // Left Pane: JSON Input
             VStack(alignment: .leading, spacing: 0) {
-                HStack { // Use HStack for title and button
+                HStack(alignment: .center) { // Use HStack for title and button, align center
                     Text("JSON Input")
                         .font(.title2)
                         .fontWeight(.bold)
@@ -26,10 +26,10 @@ struct ContentView: View {
                     Spacer()
                     Button(action: clearInput) { // Clear button
                         Label("Clear", systemImage: "xmark.circle.fill")
-                            .font(.caption)
+                            .font(.body) // Make button text slightly larger
                     }
                     .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                    // Removed .controlSize(.small) to make it larger
                 }
                 .padding([.horizontal, .top])
                 .padding(.bottom, 5)
@@ -42,7 +42,7 @@ struct ContentView: View {
                     TextEditor(text: $jsonInput)
                         .font(.system(size: fontSize, design: .monospaced))
                         .lineSpacing(5)
-                        .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)) // Default TextEditor internal padding
+                        .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
                         .onChange(of: jsonInput) {
                             prettifyJSON(jsonInput)
                         }
@@ -52,7 +52,7 @@ struct ContentView: View {
                         Text("Paste JSON here...")
                             .font(.system(size: fontSize, design: .monospaced))
                             .foregroundColor(.gray)
-                            .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)) // Match TextEditor's internal padding
+                            .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)) // Increased leading padding
                     }
                 }
                 .frame(minWidth: 300) // Apply frame to ZStack
