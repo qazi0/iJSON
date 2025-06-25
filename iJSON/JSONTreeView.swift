@@ -54,8 +54,8 @@ struct PlainDisclosureGroupStyle: DisclosureGroupStyle {
                     }
                 }) {
                     Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.primary)
                         .rotationEffect(.degrees(configuration.isExpanded ? 0 : 0))
                         .animation(.easeInOut(duration: 0.2), value: configuration.isExpanded)
                 }
