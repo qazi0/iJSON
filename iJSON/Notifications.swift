@@ -9,4 +9,6 @@ extension Notification.Name {
     static let collapseAll = Notification.Name("collapseAll")
     static let showAboutSheet = Notification.Name("showAboutSheet")
     static let copyOutput = Notification.Name("copyOutput")
+    static let toggleLeftSidebar = Notification.Name("toggleLeftSidebar")
+    static let toggleRightSidebar = Notification.Name("toggleRightSidebar")
 }
