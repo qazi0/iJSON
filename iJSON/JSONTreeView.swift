@@ -11,19 +11,65 @@ struct JSONTreeView: View {
     @ObservedObject var node: JSONNode
     let fontSize: CGFloat
     @Binding var selectedNode: JSONNode?
-
+    
+    // Add performance optimization for large trees
+    @State private var isVisible: Bool = true
+    // Virtualization for large collections
+    private let maxVisibleItems = 1000 // Limit visible items for performance
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if node.isExpandable {
                 DisclosureGroup(isExpanded: $node.isExpanded) {
-                    // Content when expanded
-                    if node.isExpanded {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(node.children, id: \.id) { childNode in
-                                JSONTreeView(node: childNode, fontSize: fontSize, selectedNode: $selectedNode)
+                    // Content when expanded - use LazyVStack with proper view recycling
+                    if node.isExpanded && isVisible {
+                        let children = node.children
+                        let isLargeCollection = children.count > maxVisibleItems
+                        
+                        if isLargeCollection {
+                            // For very large collections, show a warning and limit items
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("⚠️ Large collection with \(children.count) items - showing first \(maxVisibleItems)")
+                                    .font(.system(size: fontSize - 2, design: .monospaced))
+                                    .foregroundColor(.orange)
+                                    .padding(.leading, 20)
+                                    .padding(.vertical, 2)
+                                
+                                LazyVStack(alignment: .leading, spacing: 0) {
+                                    ForEach(0..<min(maxVisibleItems, children.count), id: \.self) { index in
+                                        JSONTreeView(
+                                            node: children[index], 
+                                            fontSize: fontSize, 
+                                            selectedNode: $selectedNode
+                                        )
+                                        .id("\(node.id)-\(index)") // Stable view identity
+                                    }
+                                }
+                                .padding(.leading, 20)
+                                
+                                if children.count > maxVisibleItems {
+                                    Text("... and \(children.count - maxVisibleItems) more items")
+                                        .font(.system(size: fontSize - 2, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 20)
+                                        .padding(.vertical, 2)
+                                }
                             }
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(children.indices, id: \.self) { index in
+                                    if index < children.count {
+                                        JSONTreeView(
+                                            node: children[index], 
+                                            fontSize: fontSize, 
+                                            selectedNode: $selectedNode
+                                        )
+                                        .id("\(node.id)-\(index)") // Stable view identity
+                                    }
+                                }
+                            }
+                            .padding(.leading, 20) // Increased indentation
                         }
-                        .padding(.leading, 20) // Increased indentation
                     }
                 } label: {
                     NodeLabel(node: node, fontSize: fontSize, isSelected: selectedNode?.id == node.id)
@@ -41,6 +87,13 @@ struct JSONTreeView: View {
                     }
             }
         }
+        .onAppear {
+            isVisible = true
+        }
+        .onDisappear {
+            // Optimize memory by marking as not visible
+            isVisible = false
+        }
     }
 }
 
@@ -49,15 +102,13 @@ struct PlainDisclosureGroupStyle: DisclosureGroupStyle {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        configuration.isExpanded.toggle()
-                    }
+                    // Remove animation for better performance with large datasets
+                    configuration.isExpanded.toggle()
                 }) {
                     Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.primary)
                         .rotationEffect(.degrees(configuration.isExpanded ? 0 : 0))
-                        .animation(.easeInOut(duration: 0.2), value: configuration.isExpanded)
                 }
                 .buttonStyle(PlainButtonStyle())
                 
@@ -76,6 +127,11 @@ struct NodeLabel: View {
     let fontSize: CGFloat
     let isSelected: Bool
     @State private var isHovering = false // For hover effect
+    
+    // Cache computed properties for better performance
+    @State private var displayText: String = ""
+    @State private var nodeColor: Color = .primary
+    @State private var nodeIcon: String = ""
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) { // Align text baselines
@@ -90,47 +146,24 @@ struct NodeLabel: View {
             }
 
             Group {
-                // Display logic based on node.rawValue
-                if node.rawValue is [String: Any] { // Object
-                    Image(systemName: node.isExpanded ? "folder.fill.badge.minus" : "folder.fill.badge.plus") // Icon for object
+                // Use cached display properties for better performance
+                if !nodeIcon.isEmpty {
+                    Image(systemName: nodeIcon)
                         .font(.system(size: fontSize - 2))
-                        .foregroundColor(.blue)
-                    Text(node.isExpanded ? "{" : "{...}")
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .foregroundColor(.primary)
-                    if !node.isExpanded {
-                        Text("(\(node.children.count) items)")
-                            .font(.system(size: fontSize - 3, design: .monospaced)) // Smaller font for count
-                            .foregroundColor(.secondary) // More subtle color
-                    }
-                } else if node.rawValue is [Any] { // Array
-                    Image(systemName: node.isExpanded ? "list.bullet.rectangle.portrait.fill" : "list.bullet.rectangle.portrait") // Icon for array
-                        .font(.system(size: fontSize - 2))
-                        .foregroundColor(.green)
-                    Text(node.isExpanded ? "[" : "[...]")
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .foregroundColor(.primary)
-                    if !node.isExpanded {
-                        Text("(\(node.children.count) items)")
-                            .font(.system(size: fontSize - 3, design: .monospaced))
-                            .foregroundColor(.secondary)
-                    }
-                } else if let str = node.rawValue as? String {
-                    Text("\"\(str)\"")
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .foregroundColor(.brown) // Changed string color
-                } else if let num = node.rawValue as? NSNumber {
-                    Text("\(num)")
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .foregroundColor(.blue)
-                } else if let bool = node.rawValue as? Bool {
-                    Text("\(bool.description)")
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .foregroundColor(.orange)
-                } else if node.rawValue is NSNull {
-                    Text("null")
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .foregroundColor(.red)
+                        .foregroundColor(nodeColor)
+                }
+                
+                Text(displayText)
+                    .font(.system(size: fontSize, design: .monospaced))
+                    .foregroundColor(nodeColor)
+                    .fixedSize(horizontal: false, vertical: true) // Allow vertical expansion for long text
+                    .multilineTextAlignment(.leading) // Ensure proper text alignment
+                
+                // Show count for collapsed containers
+                if !node.isExpanded && node.isExpandable {
+                    Text("(\(node.childrenCount) items)")
+                        .font(.system(size: fontSize - 3, design: .monospaced))
+                        .foregroundColor(.secondary)
                 }
             }
             Spacer()
@@ -140,6 +173,47 @@ struct NodeLabel: View {
         .cornerRadius(4)
         .onHover { hover in
             isHovering = hover
+        }
+        .onAppear {
+            updateDisplayProperties()
+        }
+        .onChange(of: node.isExpanded) {
+            updateDisplayProperties()
+        }
+    }
+    
+    private func updateDisplayProperties() {
+        // Cache the display properties to avoid recomputing on every render
+        if node.rawValue is [String: Any] { // Object
+            nodeIcon = node.isExpanded ? "folder.fill.badge.minus" : "folder.fill.badge.plus"
+            nodeColor = .blue
+            displayText = node.isExpanded ? "{" : "{...}"
+        } else if node.rawValue is [Any] { // Array
+            nodeIcon = node.isExpanded ? "list.bullet.rectangle.portrait.fill" : "list.bullet.rectangle.portrait"
+            nodeColor = .green
+            displayText = node.isExpanded ? "[" : "[...]"
+        } else if let str = node.rawValue as? String {
+            nodeIcon = ""
+            nodeColor = .brown
+            // Show complete string content - no truncation
+            // Use proper text wrapping and layout to handle long strings
+            displayText = "\"\(str)\""
+        } else if let num = node.rawValue as? NSNumber {
+            nodeIcon = ""
+            nodeColor = .blue
+            displayText = "\(num)"
+        } else if let bool = node.rawValue as? Bool {
+            nodeIcon = ""
+            nodeColor = .orange
+            displayText = "\(bool.description)"
+        } else if node.rawValue is NSNull {
+            nodeIcon = ""
+            nodeColor = .red
+            displayText = "null"
+        } else {
+            nodeIcon = ""
+            nodeColor = .primary
+            displayText = "unknown"
         }
     }
 }

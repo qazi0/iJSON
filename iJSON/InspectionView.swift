@@ -41,7 +41,7 @@ struct NodeDetailsSection: View {
             NodeDetailRow(label: "Type", value: node.type)
 
                             if node.type == "Object" || node.type == "Array" {
-                                NodeDetailRow(label: "Children", value: "\(node.children.count)")
+                                NodeDetailRow(label: "Children", value: "\(node.childrenCount)")
                             }
             
             if node.type == "Object" || node.type == "Array" {
@@ -84,12 +84,12 @@ struct RawValueSection: View {
                 .controlSize(.small)
             }
 
-            ScrollView {
+            ScrollView([.horizontal, .vertical]) {
                 Text(displayValue(node))
                     .font(.system(size: fontSize, design: .monospaced))
                     .textSelection(.enabled)
                     .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .background(Color.black.opacity(0.05)) // Slightly darker for code
                     .cornerRadius(6)
                     .overlay(
@@ -97,6 +97,7 @@ struct RawValueSection: View {
                             .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
                     )
             }
+            .frame(minHeight: 200, maxHeight: .infinity) // Allow flexible height
         }
         .padding()
         .background(Color.gray.opacity(0.1))
@@ -160,16 +161,18 @@ struct InspectionView: View {
     private func displayValue(for node: JSONNode) -> String {
         let rawValue = node.rawValue
         
+        // Always show complete content - no truncation
         if JSONSerialization.isValidJSONObject(rawValue) {
-            // If the rawValue itself is a valid JSON object/array, pretty print it
-            if let data = try? JSONSerialization.data(withJSONObject: rawValue, options: [.prettyPrinted, .sortedKeys]),
+            // For JSON-serializable objects, show formatted JSON
+            if let data = try? JSONSerialization.data(withJSONObject: rawValue, options: [.prettyPrinted]),
                let str = String(data: data, encoding: .utf8) {
                 return str
             }
         }
         
-        // Handle primitive types or fallback for complex types that couldn't be serialized
+        // Handle primitive types - show complete content
         if let str = rawValue as? String {
+            // Return complete string without truncation
             return str
         } else if let num = rawValue as? NSNumber {
             return "\(num)"
@@ -179,7 +182,7 @@ struct InspectionView: View {
             return "null"
         }
         
-        // Fallback for any other unhandled type or if serialization failed
+        // Fallback for any other unhandled type - show complete content
         return "\(rawValue)"
     }
 }

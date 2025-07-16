@@ -240,20 +240,40 @@ struct ContentView: View {
             selectedNode = nil
             return
         }
+        
+        // Performance optimization: Check file size and warn for extremely large files only
+        let inputSize = input.utf8.count
+        if inputSize > 50_000_000 { // 50MB limit - increased from 10MB
+            jsonOutput = "Error: JSON file is too large (\(ByteCountFormatter.string(fromByteCount: Int64(inputSize), countStyle: .file))). Please use a smaller file."
+            rootNode = nil
+            selectedNode = nil
+            return
+        }
 
         if let data = input.data(using: .utf8) {
             do {
                 let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                 
-                // Prettify for raw text display (if tree view fails or for copy)
+                // Performance optimization: For very large JSON, limit initial expansion depth
+                let expansionDepth: Int
+                if inputSize > 5_000_000 { // 5MB+ - increased threshold
+                    expansionDepth = 1
+                } else if inputSize > 1_000_000 { // 1MB+ - increased threshold
+                    expansionDepth = 2
+                } else {
+                    expansionDepth = 3
+                }
+                
                 // Convert to JSONNode tree, passing the original string segment for ordered parsing
                 rootNode = JSONNode.from(json: jsonObject, jsonStringSegment: input)
                 selectedNode = nil // Clear selection on new input
                 
                 // Populate jsonOutput using the order-preserving toPrettifiedString method
                 if let node = rootNode {
-                    // Expand all nodes initially when JSON is first entered
-                    node.expandAllInitially()
+                    // Performance optimization: Only expand first few levels initially for large files
+                    node.expandAllInitially(maxDepth: expansionDepth)
+                    
+                    // Always generate complete prettified output - no summary mode
                     jsonOutput = node.toPrettifiedString()
                 } else {
                     jsonOutput = "Error: Could not create JSON tree from input."
@@ -270,7 +290,7 @@ struct ContentView: View {
             selectedNode = nil
         }
     }
-
+    
     private func zoomIn() {
         fontSize += 1.0
     }
@@ -375,13 +395,13 @@ struct AboutView: View {
                 .padding(.horizontal)
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Creator: Siraj")
+                Text("Author: Siraj Qazi")
                     .font(.subheadline)
                 
                 HStack {
                     Text("GitHub Repository:")
                         .font(.subheadline)
-                    Link("blakberrisigma/iJSON", destination: URL(string: "https://github.com/blakberrisigma/iJSON")!)
+                    Link("github.com/qazi0/iJSON/", destination: URL(string: "https://github.com/qazi0/iJSON/")!)
                         .font(.subheadline)
                 }
             }
